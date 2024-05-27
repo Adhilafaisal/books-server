@@ -10,6 +10,7 @@ bsServer.use(cors())
 bsServer.use(express.json())
 
 const PORT=process.env.PORT||3000
+const mongoose = require('mongoose');
 
 bsServer.listen(PORT,()=>{
     console.log(`Server is running at:${PORT}`)
@@ -40,6 +41,14 @@ async function run() {
     //create collection of documents
     const booksCollections= client.db("BookInventory").collection("books");
     const cartCollections= client.db("BookInventory").collection("cartItems");
+
+
+    //insert a cart item
+    bsServer.post("/cart",async(req,res)=>{
+        const data=req.body
+        const result=await cartCollections.insertOne(data)
+        res.send(result)
+    })
     
 
     //insert a book to the database
@@ -49,7 +58,51 @@ async function run() {
         const result=await booksCollections.insertOne(data)
         res.send(result)
     })
+
+    //get carts using email
+    bsServer.get("/cart",async(req,res)=>{
+        const email=req.query.email
+        const filter={email:email}
+        const result=await cartCollections.find(filter).toArray()
+        res.send(result)
+    })
+
+
+    //get specific cart
+    bsServer.get("/cart/:id",async(req,res)=>{
+        const id=req.params.id
+        const filter={_id:new ObjectId(id)}
+        const result=await cartCollections.findOne(filter)
+        res.send(result)
+    })
+
+
+    //delete items from cart
+    bsServer.delete("/cart/:id",async(req,res)=>{
+        const id=req.params.id
+        const filter={_id:new ObjectId(id)}
+        const result=await cartCollections.deleteOne(filter)
+        res.send(result)
+      })
     
+    //update items from cart
+    bsServer.patch("/cart/:id",async(req,res)=>{
+        const id=req.params.id
+        const updateItem=req.body
+        const filter={_id:new ObjectId(id)}
+        const options={upsert:true}
+        const updateDoc ={
+            $set:{
+                ...updateItem
+            }
+        }
+        const result=await cartCollections.updateOne(filter,updateDoc,options)
+        res.send(result)
+    })
+
+
+
+
     //get all books from the database
     // bsServer.get("/all-books",async(req,res)=>{
     //     const books=booksCollections.find()
